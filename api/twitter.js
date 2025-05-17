@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
   const { username } = req.query;
 
@@ -8,22 +6,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch(
-      `https://cdn.syndication.twimg.com/widgets/followbutton/info.json?screen_names=${username}`,
-      { headers: { 'User-Agent': 'Mozilla/5.0' } }
+    const twitterRes = await fetch(
+      `https://api.twitter.com/2/users/by/username/${username}?user.fields=profile_image_url,name,username`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.TWITTER_BEARER_TOKEN}`,
+        },
+      }
     );
 
-    if (!response.ok) {
-      throw new Error(`Twitter API error: ${response.status}`);
+    if (!twitterRes.ok) {
+      throw new Error(`Twitter API error: ${twitterRes.status}`);
     }
 
-    const data = await response.json();
-    if (!data || data.length === 0) {
+    const { data } = await twitterRes.json();
+
+    if (!data) {
       return res.status(404).json({ error: 'User not found' });
     }
 
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(200).json(data[0]);
+    res.status(200).json(data);
   } catch (error) {
     console.error('API Error:', error);
     res.status(500).json({ error: 'Failed to fetch Twitter data' });
